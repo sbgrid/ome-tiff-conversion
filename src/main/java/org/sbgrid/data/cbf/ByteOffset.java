@@ -5,31 +5,34 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import loci.formats.FormatTools;
+import ome.xml.model.enums.PixelType;
+
 public class ByteOffset {
 	// signed 32-bit integer - int
-	public static byte[] decompress(byte[] data,CBFTypes.ElementType element_type) throws Exception {
+	public static byte[] decompress(byte[] data,PixelType pixelType) throws Exception {
 		final int element_size;
-		switch (element_type) {  
-		case UNSIGNED_8_BIT:
+		switch (pixelType) {  
+		case UINT8:
 			element_size = 1;
 			break;
-		case SIGNED_8_BIT:
+		case INT8:
 			element_size = 1;
 			break;
-		case UNSIGNED_16_BIT:
+		case UINT16:
 			element_size = 2;
 			break;
-		case SIGNED_16_BIT:
+		case INT16:
 			element_size = 2;
 			break;
-		case UNSIGNED_32_BIT:
+		case UINT32:
 			element_size = 4;
 			break;
-		case SIGNED_32_BIT:
+		case INT32:
 			element_size = 4;
 			break;
 		default:
-			throw new Exception(element_type.toString());
+			throw new Exception("unexected element type");
 		}
 		ByteBuffer buffer = ByteBuffer.allocate(element_size);
 		ByteArrayOutputStream output = new ByteArrayOutputStream();

@@ -1,6 +1,9 @@
 package org.sbgrid.data.cbf;
+//http://www.ccp4.ac.uk/dist/checkout/cctbx-phaser-dials-2015-12-22/cbflib/m4/fcb_read_xds_i2.m4
 
 import java.util.Optional;
+
+import ome.xml.model.enums.PixelType;
 
 public class CBFTypes {
 	enum Compression {
@@ -29,44 +32,41 @@ public class CBFTypes {
 		return result;
 	}
 
-	enum ElementType {
-		UNSIGNED_1_BIT, UNSIGNED_2_BIT, UNSIGNED_8_BIT, SIGNED_8_BIT, UNSIGNED_16_BIT, SIGNED_16_BIT, UNSIGNED_32_BIT, SIGNED_32_BIT, SIGNED_32_BIT_REAL_IEEE, SIGNED_32_BITREAL_COMPLEX_IEEE, SIGNED_64_BIT_REAL_IEEE
-	}
 	static public final String ELEMENT_TYPE_KEY = "X-Binary-Element-Type";
 	static public final String COMPRESSION_SCHEME_KEY = "COMPRESSION_SCHEME";
 
-	static public Optional<ElementType> determineElement(String value) {
-		final Optional<ElementType> result;
+	static public Optional<PixelType> determineElement(String value) {
+		final Optional<PixelType> result;
 		switch (value) {
 		case "unsigned 1-bit integer":
-			result = Optional.of(ElementType.UNSIGNED_1_BIT);
+			result = Optional.of(PixelType.BIT);
 			break;
 		case "unsigned 8-bit integer":
-			result = Optional.of(ElementType.UNSIGNED_8_BIT);
+			result = Optional.of(PixelType.UINT8);
 			break;
 		case "signed 8-bit integer":
-			result = Optional.of(ElementType.SIGNED_8_BIT);
+			result = Optional.of(PixelType.INT8);
 			break;
 		case "unsigned 16-bit integer":
-			result = Optional.of(ElementType.UNSIGNED_16_BIT);
+			result = Optional.of(PixelType.UINT16);
 			break;
 		case "signed 16-bit integer":
-			result = Optional.of(ElementType.SIGNED_16_BIT);
+			result = Optional.of(PixelType.INT16);
 			break;
 		case "unsigned 32-bit integer":
-			result = Optional.of(ElementType.UNSIGNED_32_BIT);
+			result = Optional.of(PixelType.UINT32);
 			break;
 		case "signed 32-bit integer":
-			result = Optional.of(ElementType.SIGNED_32_BIT);
+			result = Optional.of(PixelType.INT32);
 			break;
 		case "signed 32-bit real IEEE":
-			result = Optional.of(ElementType.SIGNED_32_BIT_REAL_IEEE);
+			result = Optional.of(PixelType.FLOAT);
 			break;
 		case "signed 64-bit real IEEE":
-			result = Optional.of(ElementType.SIGNED_64_BIT_REAL_IEEE);
+			result = Optional.of(PixelType.DOUBLE);
 			break;
 		case "signed 32-bit complex IEEE":
-			result = Optional.of(ElementType.SIGNED_32_BITREAL_COMPLEX_IEEE);
+			result = Optional.of(PixelType.COMPLEX);
 			break;
 		default:
 			result = Optional.empty();
@@ -74,5 +74,20 @@ public class CBFTypes {
 		}
 		return result;
 	}
-
+	
+	static public final String ELEMENT_BYTE_ORDER_KEY = "X-Binary-Element-Byte-Order";
+	static public Optional<Boolean> isLittleEndian(String value) {
+		final Optional<Boolean> result;
+		switch (value) {
+		case "LITTLE_ENDIAN":
+			result = Optional.of(true);
+			break;
+		case "BIG_ENDIAN":
+			result = Optional.of(false);
+			break;
+		default:
+			result = Optional.empty();
+		}
+		return result;
+	};
 }

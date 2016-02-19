@@ -2,28 +2,28 @@ package org.sbgrid.data.adsc;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.management.RuntimeErrorException;
 
-import org.sbgrid.data.FileType;
 import org.sbgrid.data.Format;
 import org.sbgrid.data.ImageData;
 
-import ch.qos.logback.core.util.FileUtil;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
 import loci.formats.FormatTools;
 import loci.formats.meta.IMetadata;
+import loci.formats.ome.OMEXMLMetadata;
 import loci.formats.services.OMEXMLService;
+import ome.units.UNITS;
+import ome.units.quantity.Length;
 import ome.xml.model.enums.DimensionOrder;
 import ome.xml.model.enums.EnumerationException;
 import ome.xml.model.enums.PixelType;
+import ome.xml.model.primitives.PositiveFloat;
 import ome.xml.model.primitives.PositiveInteger; 
 /**
  * 
@@ -36,7 +36,7 @@ public class ADSC extends Format {
 	
 	public ADSC (String inputfile) throws Exception {
 		RandomAccessFile raf = new RandomAccessFile(inputfile, "r");
-		Map<String, String> attributes = attributes(raf);
+		Map<String, String> attributes = getAttributes(raf);
 		setMetadata(attributesToMetadata(attributes));
 		ImageData imageData = fileImageData(raf,attributes);
 		setImageData(imageData);
@@ -59,10 +59,13 @@ public class ADSC extends Format {
 	      // create the OME-XML metadata storage object
 	      ServiceFactory factory = new ServiceFactory();
 	      OMEXMLService service = factory.getInstance(OMEXMLService.class);
-	      IMetadata meta = service.createOMEXMLMetadata();
-	      meta.createRoot();
-	      meta.setImageID("Image:0", 0);
-	      meta.setPixelsID("Pixels:0", 0);
+	      OMEXMLMetadata metadata = service.createOMEXMLMetadata();
+	      service.populateOriginalMetadata(metadata, new Hashtable<>(attributes));
+
+	      
+	      metadata.createRoot();
+	      metadata.setImageID("Image:0", 0);
+	      metadata.setPixelsID("Pixels:0", 0);
 	      String type = attributes.get("TYPE"); 
 	      if(!"unsigned_short".equals(type)) {
 	    	 throw new Exception(String.format("Unexpected type '%s'",type));
@@ -70,24 +73,28 @@ public class ADSC extends Format {
 	      String byteOrder = attributes.get("BYTE_ORDER");
 	      switch (byteOrder) {
 	      case "little_endian" :
-	    	  meta.setPixelsBinDataBigEndian(Boolean.TRUE, 0, 0);
+	    	  metadata.setPixelsBinDataBigEndian(Boolean.TRUE, 0, 0);
 		      break;
 	      case "big_endian" :
-	    	  meta.setPixelsBinDataBigEndian(Boolean.FALSE, 0, 0);
+	    	  metadata.setPixelsBinDataBigEndian(Boolean.FALSE, 0, 0);
 		      break;
 	      default:
 		      throw new Exception(String.format("Unexpected endian '%s'",byteOrder));
 	      }
-	      meta.setPixelsDimensionOrder(DimensionOrder.XYZCT, 0);
-	      meta.setPixelsType(PixelType.fromString(FormatTools.getPixelTypeString(FormatTools.UINT16)), 0);
-	      meta.setPixelsSizeX(new PositiveInteger(Integer.parseInt(attributes.get("SIZE1"))), 0);
-	      meta.setPixelsSizeY(new PositiveInteger(Integer.parseInt(attributes.get("SIZE2"))), 0);
-	      meta.setPixelsSizeZ(new PositiveInteger(1), 0);
-	      meta.setPixelsSizeC(new PositiveInteger(1), 0);
-	      meta.setPixelsSizeT(new PositiveInteger(1), 0);
-	      meta.setChannelID("Channel:0:0", 0, 0);
-	      meta.setChannelSamplesPerPixel(new PositiveInteger(1), 0, 0);
-	      return meta;
+	      metadata.setPixelsDimensionOrder(DimensionOrder.XYZCT, 0);
+	      metadata.setPixelsType(PixelType.fromString(FormatTools.getPixelTypeString(FormatTools.UINT16)), 0);
+	      metadata.setPixelsSizeX(new PositiveInteger(Integer.parseInt(attributes.get("SIZE1"))), 0);
+	      metadata.setPixelsSizeY(new PositiveInteger(Integer.parseInt(attributes.get("SIZE2"))), 0);
+	      metadata.setPixelsSizeZ(new PositiveInteger(1), 0);
+	      metadata.setPixelsSizeC(new PositiveInteger(1), 0);
+	      metadata.setPixelsSizeT(new PositiveInteger(1), 0);
+	      if(attributes.containsKey("PIXEL_SIZE")){
+	    	  metadata.setPixelsPhysicalSizeX(new Length(Float.parseFloat(attributes.get("PIXEL_SIZE")), UNITS.MILLI(UNITS.METRE)),0);
+	    	  metadata.setPixelsPhysicalSizeY(new Length(Float.parseFloat(attributes.get("PIXEL_SIZE")), UNITS.MILLI(UNITS.METRE)),0);
+	      }
+	      metadata.setChannelID("Channel:0:0", 0, 0);
+	      metadata.setChannelSamplesPerPixel(new PositiveInteger(1), 0, 0);
+	      return metadata;
 	    }
 	    catch (DependencyException e) {
 	    	exception = e;
@@ -104,7 +111,7 @@ public class ADSC extends Format {
 	    throw new RuntimeErrorException(new Error(exception));
 	  }
 	
-	private Map<String, String> attributes(RandomAccessFile in) throws Exception {
+	private Map<String, String> getAttributes(RandomAccessFile in) throws Exception {
 		Map<String, String> metadata    = new HashMap<>();
 		int linenumber = 1;
 		// handling metadata in the file header
@@ -138,4 +145,7 @@ public class ADSC extends Format {
 		}
 	}
 
+	static public void main(String arg[]) throws Exception {
+		new ADSC("/home/mwm1/Work/biogrid/1/p3_6_1_015.img").write("/home/mwm1/Work/biogrid/1/p3_6_1_015.tiff");;
+	}
 }

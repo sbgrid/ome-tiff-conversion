@@ -1,6 +1,10 @@
 package org.sbgrid.data;
 
 import java.io.File;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import loci.formats.FormatWriter;
 import loci.formats.ImageWriter;
@@ -34,5 +38,21 @@ public abstract class Format {
 	    writer.setId(outputfile);
 	    writer.saveBytes(0, getImageData().data);
 		writer.close();
+	}
+	
+	public <E> void set(String key,Map<String,String> attribute,Function<String,Optional<E>> map,Consumer<E> c,String message) throws Exception {
+		if(attribute.containsKey(key)){
+			String value = attribute.get(key);
+			value=value.replace('"',' ').trim();
+			Optional<E> option = map.apply(value);
+			if(option.isPresent()) {
+				c.accept(option.get());
+			} else {
+				throw new Exception(message);
+			}
+		} else {
+			throw new Exception(message);
+		}
+			
 	}
 }

@@ -1,26 +1,30 @@
 package org.sbgrid.data.cbf;
 
 import java.io.RandomAccessFile;
-
 import java.rmi.UnexpectedException;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Base64.Encoder;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.management.RuntimeErrorException;
+
 import org.sbgrid.data.Format;
 import org.sbgrid.data.ImageData;
 import org.sbgrid.data.Util;
-import org.sbgrid.data.cbf.CBFTypes.ElementType;
 
-import loci.formats.FormatTools;
-public class CBF {}
-/*
+import loci.common.services.ServiceFactory;
+import loci.formats.meta.IMetadata;
+import loci.formats.ome.OMEXMLMetadata;
+import loci.formats.services.OMEXMLService;
+import ome.xml.model.enums.DimensionOrder;
+import ome.xml.model.primitives.PositiveInteger;
 public class CBF extends Format {
 	Pattern COMPRESSION_SCHEME_PATTERN = Pattern.compile("conversions=\"([^\"]+)");
 	static private final String HEADER_PREFIX = "###CBF:";
@@ -28,56 +32,52 @@ public class CBF extends Format {
 
 	public CBF(String inputfile) throws Exception {
 		RandomAccessFile in = new RandomAccessFile(inputfile, "r");
-		setMetadata(fileMetadata(in));
-		setImageData(fileImageData(in, getMetadata()));
-		setPixelType(FormatTools.UINT32);
+		Map<String,String> attributes = getAttributes(in);
+		setMetadata(getMetadata(attributes));
+		setImageData(fileImageData(in,attributes));
 	}
-	@Override
-	public Integer getPixelType() {
-		final Integer result;
-		switch(getElementType()) {
-		case UNSIGNED_1_BIT:
-			result = FormatTools.BIT;
-			break;
-		case UNSIGNED_8_BIT:
-			result = FormatTools.UINT8;
-			break;
-		case SIGNED_8_BIT:
-			result = FormatTools.INT8;
-			break;
-		case UNSIGNED_16_BIT:
-			result = FormatTools.UINT16;
-			break;
-		case SIGNED_16_BIT:
-			result = FormatTools.INT16;
-			break;
-		case UNSIGNED_32_BIT:
-			result = FormatTools.UINT32;
-			break;
-		case SIGNED_32_BIT:
-			result = FormatTools.INT32;
-			break;
-		case SIGNED_32_BIT_REAL_IEEE:
-			result = FormatTools.FLOAT;
-			break;
-		case SIGNED_64_BIT_REAL_IEEE:
-			result = FormatTools.DOUBLE;
-			break;
-		default:
-			throw new RuntimeException(String.format("Unsupported element type %a",getElementType()));
+	public IMetadata getMetadata(Map<String, String> attributes){
+		Exception exception;
+		try{
+		  // http://strucbio.biologie.uni-konstanz.de/ccp4wiki/index.php/SMV_file_format
+	      // create the OME-XML metadata storage object
+	      ServiceFactory factory = new ServiceFactory();
+	      OMEXMLService service = factory.getInstance(OMEXMLService.class);
+	      OMEXMLMetadata metadata = service.createOMEXMLMetadata();
+	      service.populateOriginalMetadata(metadata, new Hashtable<>(attributes));
+	      metadata.createRoot();
+	      metadata.setImageID("Image:0", 0);
+	      metadata.setPixelsID("Pixels:0", 0);
+	      Optional<Boolean> isLittleEndian = CBFTypes.isLittleEndian(attributes.get(CBFTypes.ELEMENT_BYTE_ORDER_KEY));
+	      set(CBFTypes.ELEMENT_BYTE_ORDER_KEY,
+	    	  attributes,
+	    	  option -> CBFTypes.isLittleEndian(option),
+	    	  endian -> metadata.setPixelsBinDataBigEndian(endian, 0, 0),
+	    	  "missing ending");
+
+	      metadata.setPixelsDimensionOrder(DimensionOrder.XYZCT, 0);
+	      set(CBFTypes.ELEMENT_TYPE_KEY,
+		    	  attributes,
+		    	  option -> CBFTypes.determineElement(option),
+		    	  pixelType -> metadata.setPixelsType(pixelType, 0),
+		    	  "missing pixel type");
+	      
+	      metadata.setPixelsSizeY(new PositiveInteger(Integer.parseInt(attributes.get("X-Binary-Size-Second-Dimension"))), 0);
+	      metadata.setPixelsSizeX(new PositiveInteger(Integer.parseInt(attributes.get("X-Binary-Size-Fastest-Dimension"))), 0);
+	      metadata.setPixelsSizeZ(new PositiveInteger(1), 0);
+	      metadata.setPixelsSizeC(new PositiveInteger(1), 0);
+	      metadata.setPixelsSizeT(new PositiveInteger(1), 0);
+	      metadata.setChannelID("Channel:0:0", 0, 0);
+	      metadata.setChannelSamplesPerPixel(new PositiveInteger(1), 0, 0);
+	      return metadata;
+		}catch (Exception e) { 
+			exception = e; 
 		}
-		return result;
-	}
-	
 
-	ElementType getElementType() {
-		String element_type = getMetadata().get(CBFTypes.ELEMENT_TYPE_KEY);
-		System.out.println(element_type);
-		Optional<ElementType> optional = CBFTypes.determineElement(element_type.replace('"',' ').trim());
-		return optional.get();
+	    System.err.println("Failed to populate OME-XML metadata object.");
+	    throw new RuntimeErrorException(new Error(exception));
 	}
-
-	private Map<String, String> fileMetadata(RandomAccessFile in) throws Exception {
+	private Map<String, String> getAttributes(RandomAccessFile in) throws Exception {
 		int linenumber = 1;
 		try {
 			Map<String, String> metadata = new HashMap<>();
@@ -99,7 +99,9 @@ public class CBF extends Format {
 					metadata.put(CBFTypes.COMPRESSION_SCHEME_KEY, matcher.group(1));
 				} else if (line.contains(":")) {
 					String[] keyvalue = line.split(":");
-					metadata.put(keyvalue[0], keyvalue[1].substring(0, keyvalue[1].length()).trim());
+					String key = keyvalue[0];
+					String value = keyvalue[1].substring(0, keyvalue[1].length()).trim();
+					metadata.put(key,value);
 				}
 			}
 		} catch (Exception e) {
@@ -150,17 +152,14 @@ public class CBF extends Format {
 
 			}
 		}
-		imageData.data = ByteOffset.decompress(imageData.data,getElementType());
+		imageData.data = ByteOffset.decompress(imageData.data,getMetadata().getPixelsType(0));
 		System.out.println(imageSize);
 		return imageData;
 	}
-	
-
 	public static void main(String[] args) throws Exception {
 		String inputfile = "/home/mwm1/Work/biogrid/175/hse85_3_15_1_0796.cbf";
-		String outputfile = "/home/mwm1/Work/biogrid/175/hse85_3_15_1_0796.ome";
+		String outputfile = "/home/mwm1/Work/biogrid/175/hse85_3_15_1_0796.tiff";
 		new CBF(inputfile).write(outputfile);
 		;
 	}
 }
-*/
