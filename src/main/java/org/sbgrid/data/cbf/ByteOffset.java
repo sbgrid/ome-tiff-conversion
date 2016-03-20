@@ -10,7 +10,7 @@ import ome.xml.model.enums.PixelType;
 
 public class ByteOffset {
 	// signed 32-bit integer - int
-	public static byte[] decompress(byte[] data,PixelType pixelType) throws Exception {
+	public static byte[] decompress(byte[] data,PixelType pixelType,Boolean pixelsBigEndian) throws Exception {
 		final int element_size;
 		switch (pixelType) {  
 		case UINT8:
@@ -39,6 +39,7 @@ public class ByteOffset {
 		ByteArrayInputStream input = new ByteArrayInputStream(data);
 		long value = 0;
 		
+		ByteOrder order = pixelsBigEndian?ByteOrder.LITTLE_ENDIAN:ByteOrder.BIG_ENDIAN;
 		byte[] buffer_8 = new byte[1];
 		while (input.read(buffer_8) == 1) {
 			byte delta_8 = buffer_8[0];
@@ -52,7 +53,7 @@ public class ByteOffset {
 				byte[] buffer_16 = new byte[2];
 				if(input.read(buffer_16) == 2) {
 					ByteBuffer little_endian = ByteBuffer.wrap(buffer_16);
-					little_endian.order(ByteOrder.LITTLE_ENDIAN);
+					little_endian.order(order);
 					short delta_16 = little_endian.getShort();
 					if(delta_16 != Short.MIN_VALUE) {
 						delta_16 += (byte) value;
@@ -64,7 +65,7 @@ public class ByteOffset {
 						byte[] buffer_32 = new byte[4];
 						if(input.read(buffer_32) == 4) {
 							ByteBuffer little_endian_32 = ByteBuffer.wrap(buffer_32);
-							little_endian_32.order(ByteOrder.LITTLE_ENDIAN);
+							little_endian_32.order(order);
 							int delta_32 = little_endian_32.getInt();
 							if(delta_32 != Integer.MIN_VALUE) {
 								delta_32 += (byte) value;
@@ -75,7 +76,7 @@ public class ByteOffset {
 							} else { 
 								byte[] buffer_64 = new byte[8];
 								ByteBuffer little_endian_64 = ByteBuffer.wrap(buffer_64);
-								little_endian_64.order(ByteOrder.LITTLE_ENDIAN);
+								little_endian_64.order(order);
 								int delta_64 = little_endian_64.getInt();
 								delta_64 += (byte) value;
 								value = delta_64;

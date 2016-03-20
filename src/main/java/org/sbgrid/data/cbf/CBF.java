@@ -52,7 +52,7 @@ public class CBF extends Format {
 	      set(CBFTypes.ELEMENT_BYTE_ORDER_KEY,
 	    	  attributes,
 	    	  option -> CBFTypes.isLittleEndian(option),
-	    	  endian -> metadata.setPixelsBinDataBigEndian(endian, 0, 0),
+	    	  endian -> metadata.setPixelsBigEndian(endian, 0),
 	    	  "missing ending");
 
 	      metadata.setPixelsDimensionOrder(DimensionOrder.XYZCT, 0);
@@ -63,7 +63,7 @@ public class CBF extends Format {
 		    	  "missing pixel type");
 	      
 	      metadata.setPixelsSizeY(new PositiveInteger(Integer.parseInt(attributes.get("X-Binary-Size-Second-Dimension"))), 0);
-	      metadata.setPixelsSizeX(new PositiveInteger(Integer.parseInt(attributes.get("X-Binary-Size-Fastest-Dimension"))), 0);
+	      metadata.setPixelsSizeX(new PositiveInteger(Integer.parseInt(attributes.get("X-Binary-Size-Fastest-Dimension"))), 0);			
 	      metadata.setPixelsSizeZ(new PositiveInteger(1), 0);
 	      metadata.setPixelsSizeC(new PositiveInteger(1), 0);
 	      metadata.setPixelsSizeT(new PositiveInteger(1), 0);
@@ -152,7 +152,10 @@ public class CBF extends Format {
 
 			}
 		}
-		imageData.data = ByteOffset.decompress(imageData.data,getMetadata().getPixelsType(0));
+		imageData.data = ByteOffset.decompress(imageData.data
+				                              ,getMetadata().getPixelsType(0)
+				                              ,getMetadata().getPixelsBigEndian(0));
+		
 		System.out.println(imageSize);
 		return imageData;
 	}

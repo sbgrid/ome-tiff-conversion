@@ -28,6 +28,7 @@ public enum FileType {
     		break;
     	case "{": // Fooled by desmond files
     		filetype = Optional.of(ADSC);
+    		System.out.println(path);
     		break;
     	case "I":
     		filetype = Optional.of(TIFF);
