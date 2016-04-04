@@ -10,7 +10,15 @@ import javax.management.RuntimeErrorException;
 
 import org.sbgrid.data.Format;
 import org.sbgrid.data.ImageData;
+import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.FileAppender;
+import ch.qos.logback.core.status.OnConsoleStatusListener;
+import ch.qos.logback.core.status.StatusManager;
 import loci.common.services.DependencyException;
 import loci.common.services.ServiceException;
 import loci.common.services.ServiceFactory;
@@ -54,22 +62,21 @@ public class ADSC extends Format {
         }
         private IMetadata attributesToMetadata(Map<String, String> attributes){
                 Exception exception;
-                try{
-                  // http://strucbio.biologie.uni-konstanz.de/ccp4wiki/index.php/SMV_file_format
-              // create the OME-XML metadata storage object
-                  ServiceFactory factory = new ServiceFactory();
-                  OMEXMLService service = factory.getInstance(OMEXMLService.class);
-                  OMEXMLMetadata metadata = service.createOMEXMLMetadata();
-              service.populateOriginalMetadata(metadata, new Hashtable<>(attributes));
+                try{// http://strucbio.biologie.uni-konstanz.de/ccp4wiki/index.php/SMV_file_format
+                	// create the OME-XML metadata storage object
+                	ServiceFactory factory = new ServiceFactory();
+                	OMEXMLService service = factory.getInstance(OMEXMLService.class);
+                	OMEXMLMetadata metadata = service.createOMEXMLMetadata();
+                	service.populateOriginalMetadata(metadata, new Hashtable<>(attributes));
 
-              metadata.createRoot();
-              metadata.setImageID("Image:0", 0);
-              metadata.setPixelsID("Pixels:0", 0);
-              String type = attributes.get("TYPE");
-              if(!"unsigned_short".equals(type)) {
-                 throw new Exception(String.format("Unexpected type '%s'",type));
-              }
-              String byteOrder = attributes.get("BYTE_ORDER");
+                	metadata.createRoot();
+                	metadata.setImageID("Image:0", 0);
+                  	metadata.setPixelsID("Pixels:0", 0);
+                  	String type = attributes.get("TYPE");
+                  	if(!"unsigned_short".equals(type)) {
+                  	  	throw new Exception(String.format("Unexpected type '%s'",type));
+                  	}
+                  	String byteOrder = attributes.get("BYTE_ORDER");
               switch (byteOrder) {
               case "little_endian" :
                   metadata.setPixelsBinDataBigEndian(Boolean.TRUE, 0, 0);
@@ -93,7 +100,6 @@ public class ADSC extends Format {
               }
               metadata.setChannelID("Channel:0:0", 0, 0);
               metadata.setChannelSamplesPerPixel(new PositiveInteger(1), 0, 0);
-              System.out.println(service.getOMEXML(metadata));
               return metadata;
             }
             catch (DependencyException e) {
@@ -145,6 +151,19 @@ public class ADSC extends Format {
                 }
         }
         static public void main(String arg[]) throws Exception {
-                new ADSC("/home/mwm1/Work/biogrid/1/p3_6_1_015.img").write("/home/mwm1/Work/biogrid/1/p3_6_1_015.tiff");;
+        	LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+        	context.reset();
+        	PatternLayoutEncoder encoder = new PatternLayoutEncoder();
+    		encoder.setContext(context);
+    		encoder.setPattern("%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n");
+    		encoder.start();
+			FileAppender fileAppender = new FileAppender<>();
+			fileAppender.setFile("/tmp/logfile.out");
+			fileAppender.setEncoder(encoder);
+			fileAppender.setContext(context);
+			fileAppender.start();
+			Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+			root.addAppender(fileAppender);
+            new ADSC("/home/mwm1/Work/sbgrid/1/p3_6_1_015.img").write("/home/mwm1/Work/sbgrid/1/p3_6_1_015.tiff");;
         }
 }

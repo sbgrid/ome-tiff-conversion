@@ -9,8 +9,11 @@ import java.util.function.Function;
 import loci.formats.FormatWriter;
 import loci.formats.ImageWriter;
 import loci.formats.meta.IMetadata;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 public abstract class Format {
+	private static final Logger LOGGER = LoggerFactory.getLogger(Format.class);
+	
 	IMetadata metadata;
 	ImageData imageData;
 	public IMetadata getMetadata() {
@@ -30,7 +33,7 @@ public abstract class Format {
 	public void write(String outputfile) throws Exception {
 		File file = new File(outputfile);
 		if(file.exists())
-	    {   System.err.println("deleting outputfile");
+	    {   LOGGER.warn(String.format("deleting outputfile : {0}", outputfile));
 			new File(outputfile).delete(); }
 		IMetadata omexml = getMetadata();
 		ImageWriter writer = new ImageWriter();
