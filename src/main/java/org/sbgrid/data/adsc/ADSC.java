@@ -54,7 +54,11 @@ public class ADSC extends Format {
                 ImageData imageData = new ImageData();
                 imageData.height = getMetadata().getPixelsSizeX(0).getValue();
                 imageData.width = getMetadata().getPixelsSizeY(0).getValue();
-                imageData.data = new byte[(imageData.height * imageData.width) * 2];
+                System.out.println(imageData.height);
+                System.out.println(imageData.width);
+                int size = (imageData.height * imageData.width) * 2;
+                System.out.println(size);
+                imageData.data = new byte[size];
                 int pointer = Integer.parseInt(attributes.get("HEADER_BYTES").trim());
                 raf.seek(pointer);
                 raf.read(imageData.data);
@@ -164,6 +168,9 @@ public class ADSC extends Format {
 			fileAppender.start();
 			Logger root = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
 			root.addAppender(fileAppender);
-            new ADSC("/home/mwm1/Work/sbgrid/1/p3_6_1_015.img").write("/home/mwm1/Work/sbgrid/1/p3_6_1_015.tiff");;
+			//new ADSC("/home/mwm1/Work/sbgrid/17").write("/tmp/1.tiff");
+            //new ADSC("/home/mwm1/Work/sbgrid/1/p3_6_1_015.img").write("/tmp/1.tiff");
+            new ADSC("/home/mwm1/Work/sbgrid/17/ucsd6_16_1_094.img").write("/tmp/1.tiff");
+            
         }
 }

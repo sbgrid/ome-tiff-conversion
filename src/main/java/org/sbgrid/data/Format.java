@@ -6,11 +6,11 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import loci.formats.FormatWriter;
-import loci.formats.ImageWriter;
-import loci.formats.meta.IMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import loci.formats.ImageWriter;
+import loci.formats.meta.IMetadata;
 public abstract class Format {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Format.class);
 	
@@ -43,7 +43,9 @@ public abstract class Format {
 		writer.close();
 	}
 	
-	public <E> void set(String key,Map<String,String> attribute,Function<String,Optional<E>> map,Consumer<E> c,String message) throws Exception {
+	public <E> void set(String key,Map<String,String> attribute
+			           ,Function<String,Optional<E>> map
+			           ,Consumer<E> c,String message) throws Exception {
 		if(attribute.containsKey(key)){
 			String value = attribute.get(key);
 			value=value.replace('"',' ').trim();
