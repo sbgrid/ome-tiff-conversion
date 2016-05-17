@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<configuration>
+	<!-- Dimensions -->
+    <element name="PixelsSizeX" required="true">
+        <source>SIZE1</source>
+    </element>
+    <element name="PixelsSizeY" required="true">
+        <source>SIZE2</source>
+    </element>
+    <element name="PixelsSizeZ" value="1"/>
+    <element name="PixelsSizeC" value="1"/>
+    <element name="PixelsSizeT" value="1"/>
+    <element name="ChannelID"   value="Channel:0:0"/>
+    <element name="ChannelSamplesPerPixel" value="1"/>
+    <element name="ImageID"     value="Image:0"/>
+    <element name="PixelsID"    value="Pixels:0"/>
+    <attribute name="TYPE"  required="true">
+        <source>Data_type</source>
+        <source>TYPE</source>
+    </attribute>
+    <attribute name="BYTE_ORDER" required="true">
+        <source>BYTE_ORDER</source>
+    </attribute>
+    <attribute name="PIXEL_SIZE" required="true">
+        <source>PIXEL_SIZE</source>
+    </attribute>
+</configuration>
