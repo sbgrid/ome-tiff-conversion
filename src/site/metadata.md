@@ -51,8 +51,8 @@ The following types are supported :
     String
     Timestamp
 
-For more complicated mappings code has to be written to convert the values.
-Attributes then supply the appropriate value the converter.  For instance _TYPE_
+For more complicated mappings, support code has to be written to convert the values.
+Attributes then can supply the appropriate value the converter.  For instance _TYPE_
 is an attribute which is used to determine the number of bits used in the image.
 
 It is configured by the following tag:
