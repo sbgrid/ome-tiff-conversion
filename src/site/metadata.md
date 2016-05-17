@@ -4,7 +4,9 @@ OEM metadata is configured via an xml file.  An example of using the
 metadata mapping is given by using the default included with the
 source code.
 
-```src/main/resources/ADSC.xml```
+```
+src/main/resources/ADSC.xml
+```
 
 The following is an example which illustrating the usage of a
 configuration file supplied by the _-m_ option.
