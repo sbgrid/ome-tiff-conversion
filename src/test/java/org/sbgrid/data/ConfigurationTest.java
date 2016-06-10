@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.xml.bind.JAXBContext;
@@ -15,6 +16,8 @@ import org.sbgrid.data.Configuration;
 import org.sbgrid.data.Configuration.Field;
 import org.sbgrid.data.adsc.ADSC;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
 
 import ch.qos.logback.classic.LoggerContext;
 import loci.common.services.ServiceFactory;
@@ -47,9 +50,9 @@ public class ConfigurationTest {
 		OMEXMLService service = factory.getInstance(OMEXMLService.class);
 		OMEXMLMetadata metadata = service.createOMEXMLMetadata();
 		metadata.createRoot();
-		Map<String, String> attributes = new HashMap<String, String>();
-		attributes.put("SIZE1", "10");
-		attributes.put("SIZE2", "10");
+		Map<String, List<String>> attributes = new HashMap<String, List<String>>();
+		attributes.put("SIZE1", Lists.newArrayList("10"));
+		attributes.put("SIZE2", Lists.newArrayList("10"));
 		configuration.populateMetadata(metadata, attributes);
 	}
 
@@ -57,8 +60,8 @@ public class ConfigurationTest {
     	LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
     	context.reset();
 		//new ADSC("/home/mwm1/Work/sbgrid/17").write("/tmp/1.tiff");
-        //new ADSC("/home/mwm1/Work/sbgrid/1/p3_6_1_015.img").write("/tmp/1.tiff");
-        new ADSC(ADSC.configuration(),"/home/mwm1/Work/sbgrid/17/ucsd6_16_1_094.img").write("/tmp/1.ome.tiff");
+        new ADSC(ADSC.configuration(),"/home/mwm1/Work/sbgrid/1/p3_6_1_015.img").write("/tmp/1.tiff");
+        //new ADSC(ADSC.configuration(),"/home/mwm1/Work/sbgrid/17/ucsd6_16_1_094.img").write("/tmp/1.ome.tiff");
 
     }
 

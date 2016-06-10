@@ -2,10 +2,10 @@
 <configuration>
 	<!-- Dimensions -->
     <element name="PixelsSizeX" required="true">
-        <source>SIZE1</source>
+        <source field="SIZE1"/>
     </element>
     <element name="PixelsSizeY" required="true">
-        <source>SIZE2</source>
+        <source field="SIZE2"/>
     </element>
     <element name="PixelsSizeZ" value="1"/>
     <element name="PixelsSizeC" value="1"/>
@@ -15,13 +15,16 @@
     <element name="ImageID"     value="Image:0"/>
     <element name="PixelsID"    value="Pixels:0"/>
     <attribute name="TYPE"  required="true">
-        <source>Data_type</source>
-        <source>TYPE</source>
+        <source field="Data_type"/>
+        <source field="TYPE"/>
     </attribute>
     <attribute name="BYTE_ORDER" required="true">
-        <source>BYTE_ORDER</source>
+        <source field="BYTE_ORDER"/>
     </attribute>
     <attribute name="PIXEL_SIZE" required="true">
-        <source>PIXEL_SIZE</source>
+        <source field="PIXEL_SIZE"/>
+    </attribute>
+    <attribute name="HEADER_BYTES" required="true">
+        <source field="HEADER_BYTES"/>
     </attribute>
 </configuration>

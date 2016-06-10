@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -38,14 +40,20 @@ import ome.xml.model.enums.PixelType;
  *         ADSCImageLoader.java
  */
 public class ADSC extends Format {
-
+	public void upsert(Map<String, List<String>> kv,String key,String value){
+		if(!kv.containsKey(key)){
+			kv.put(key,new ArrayList<String>());
+		}
+		List<String> values = kv.get(key);
+		values.add(value);
+	}
 	public ADSC(Configuration configuration, String inputfile) throws Exception {
 		RandomAccessFile raf = new RandomAccessFile(inputfile, "r");
-		Map<String, String> attributes = getAttributes(raf);
-		attributes.put("filename", inputfile);
-		String header = fileHeader(raf, attributes);
+		Map<String, List<String>> attributes = getAttributes(raf);
+		upsert(attributes,"filename", inputfile);
+		String header = fileHeader(configuration,raf, attributes);
 		setMetadata(attributesToMetadata(configuration, attributes, header));
-		ImageData imageData = fileImageData(raf, attributes);
+		ImageData imageData = fileImageData(configuration,raf, attributes);
 		setImageData(imageData);
 	}
 
@@ -63,8 +71,8 @@ public class ADSC extends Format {
 		return new HexBinaryAdapter().marshal(sha1.digest());
 	}
 
-	private String fileHeader(RandomAccessFile raf, Map<String, String> attributes) throws Exception {
-		int pointer = Integer.parseInt(attributes.get("HEADER_BYTES").trim());
+	private String fileHeader(Configuration configuration, RandomAccessFile raf, Map<String, List<String>> attributes) throws Exception {
+		int pointer = Integer.parseInt(configuration.resolveProperty("HEADER_BYTES", attributes).trim());
 		raf.seek(0);
 		byte headerByte[] = new byte[pointer];
 		raf.read(headerByte);
@@ -73,21 +81,21 @@ public class ADSC extends Format {
 		return raw;
 	}
 
-	private ImageData fileImageData(RandomAccessFile raf, Map<String, String> attributes) throws Exception {
+	private ImageData fileImageData(Configuration configuration, RandomAccessFile raf, Map<String, List<String>> attributes) throws Exception {
 		ImageData imageData = new ImageData();
 		imageData.height = getMetadata().getPixelsSizeX(0).getValue();
 		imageData.width = getMetadata().getPixelsSizeY(0).getValue();
 		int size = (imageData.height * imageData.width) * 2;
 		imageData.data = new byte[size];
-		int pointer = Integer.parseInt(attributes.get("HEADER_BYTES").trim());
+		int pointer = Integer.parseInt(configuration.resolveProperty("HEADER_BYTES", attributes).trim());
 		raf.seek(pointer);
 		raf.read(imageData.data);
 		String sha1 = SHA1(raf);
-		attributes.put("SHA-1", sha1);
+		upsert(attributes,"SHA-1", sha1);
 		return imageData;
 	}
 
-	private IMetadata attributesToMetadata(Configuration configuration, Map<String, String> attributes, String header) {
+	private IMetadata attributesToMetadata(Configuration configuration, Map<String, List<String>> attributes, String header) {
 
 		Exception exception;
 		try { // http://strucbio.biologie.uni-konstanz.de/ccp4wiki/index.php/SMV_file_format
@@ -99,9 +107,11 @@ public class ADSC extends Format {
 			configuration.populateMetadata(metadata, attributes);
 			// http://lists.openmicroscopy.org.uk/pipermail/ome-users/2013-January/003508.html
 			int comment_id = 0;
-			for (Entry<String, String> entry : attributes.entrySet()) {
+			for (Entry<String, List<String>> entry : attributes.entrySet()) {
+				for(String value : entry.getValue()){
 				metadata.setCommentAnnotationID(entry.getKey(), comment_id);
-				metadata.setCommentAnnotationValue(entry.getValue(), comment_id);
+				metadata.setCommentAnnotationValue(value, comment_id);
+				}
 				comment_id++;
 			}
 
@@ -109,11 +119,11 @@ public class ADSC extends Format {
 			metadata.setXMLAnnotationDescription("ADSC parsed headers", 0);
 			metadata.setXMLAnnotationValue("<header><![CDATA[" + header + "]]></header>", 0);
 
-			String type = configuration.resolveProperties("TYPE", attributes);
-			if (!"unsigned_short".equals(type)) {
+			String type = configuration.resolveProperty("TYPE", attributes);
+			if (!"unsigned_short".equals(type) && !"unsigned short int".equals(type)) {
 				throw new Exception(String.format("Unexpected type '%s'", type));
 			}
-			String byteOrder = configuration.resolveProperties("BYTE_ORDER", attributes);
+			String byteOrder = configuration.resolveProperty("BYTE_ORDER", attributes);
 			if ("little_endian".equals(byteOrder)) {
 				metadata.setPixelsBinDataBigEndian(Boolean.TRUE, 0, 0);
 			} else if ("big_endian".equals(byteOrder)) {
@@ -124,10 +134,12 @@ public class ADSC extends Format {
 
 			metadata.setPixelsDimensionOrder(DimensionOrder.XYZCT, 0);
 			metadata.setPixelsType(PixelType.fromString(FormatTools.getPixelTypeString(FormatTools.UINT16)), 0);
-			String pixelSize = configuration.resolveProperties("PIXEL_SIZE", attributes);
+			String pixelSize = configuration.resolveProperty("PIXEL_SIZE", attributes);
 			if (pixelSize != null) {
 				metadata.setPixelsPhysicalSizeX(new Length(Float.parseFloat(pixelSize), UNITS.MILLI(UNITS.METRE)), 0);
 				metadata.setPixelsPhysicalSizeY(new Length(Float.parseFloat(pixelSize), UNITS.MILLI(UNITS.METRE)), 0);
+			} else {
+				throw new Exception(String.format("Missing pixel size"));
 			}
 			return metadata;
 		} catch (DependencyException e) {
@@ -144,8 +156,8 @@ public class ADSC extends Format {
 		throw new RuntimeErrorException(new Error(exception));
 	}
 
-	private Map<String, String> getAttributes(RandomAccessFile in) throws Exception {
-		Map<String, String> metadata = new HashMap<String, String>();
+	private Map<String, List<String>> getAttributes(RandomAccessFile in) throws Exception {
+		Map<String, List<String>> metadata = new HashMap<String, List<String>>();
 		int linenumber = 1;
 		// handling metadata in the file header
 		try {
@@ -167,7 +179,9 @@ public class ADSC extends Format {
 					return metadata;
 				} else if (line.contains("=")) {
 					String[] keyvalue = line.split("=");
-					metadata.put(keyvalue[0], keyvalue[1].substring(0, keyvalue[1].length() - 1));
+					String key = keyvalue[0];
+					String value = keyvalue[1].substring(0, keyvalue[1].length() - 1);
+					upsert(metadata,key,value);
 				} // dropping the extra headers for now
 				else {
 					throw new Exception(

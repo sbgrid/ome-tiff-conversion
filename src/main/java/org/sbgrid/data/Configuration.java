@@ -40,6 +40,31 @@ public class Configuration {
 	 * @author mwm1
 	 *
 	 */
+	static public class Replacement {
+		@XmlAttribute(name = "pattern")
+		String pattern;
+		@XmlAttribute(name = "replacement")
+		String replacement;
+		
+		public Replacement(){}
+		public Replacement(String pattern,String replacement){
+			this.pattern = pattern;
+			this.replacement = replacement;
+		}
+	}
+	static public class Source {
+		@XmlAttribute(name = "field")
+		String field;
+		@XmlElement(name = "regexp")
+		List<Replacement> regexp;
+		
+		public Source(){}
+		public Source(String field,Replacement ... regexp){
+			this.field = field;
+			this.regexp = Arrays.asList(regexp); 
+		}
+	}
+	
 	static public class Field {
 		/**
 		 * Where to get the data to place in the field. The first value that is
@@ -47,7 +72,7 @@ public class Configuration {
 		 * if there is no default.
 		 */
 		@XmlElement(name = "source")
-		List<String> fields = null;
+		List<Source> fields = null;
 		/**
 		 * The name used to refer to the field.
 		 */
@@ -71,7 +96,10 @@ public class Configuration {
 		public Field(String name, String... fields) {
 			super();
 			this.name = name;
-			this.fields = Arrays.asList(fields);
+			this.fields = new ArrayList<Configuration.Source>();
+			for(String field : fields){
+				this.fields.add(new Source(field));
+			}
 		}
 
 		public Field() {
@@ -138,15 +166,15 @@ public class Configuration {
 	 * @return
 	 * @throws Exception
 	 */
-	public String resolve(List<Field> fields, String name, Map<String, String> attributes) throws Exception {
-		String value = null;
+	public List<String> resolve(List<Field> fields, String name, Map<String, List<String>> attributes) throws Exception {
+		List<String> value = null;
 		Map<String, Field> supportedFields = index(fields);
 		if (supportedFields.containsKey(name)) {
 			Field field = supportedFields.get(name);
-			value = field.value;
-			for (String fieldName : field.fields) {
-				if (attributes.containsKey(fieldName)) {
-					value = attributes.get(fieldName);
+			value = Arrays.asList(new String[]{field.value}) ;
+			for (Source source : field.fields) {
+				if (attributes.containsKey(source.field)) {
+					value = attributes.get(source.field);
 					break;
 				}
 			}
@@ -159,12 +187,12 @@ public class Configuration {
 		return value;
 	}
 
-	public String resolveElement(Field field, Map<String, String> values) throws Exception {
-		String value = field.value;
+	public List<String> resolveElement(Field field, Map<String, List<String>> values) throws Exception {
+		List<String> value = Arrays.asList(new String[]{field.value});
 		if(field.fields != null)
-		for (String fieldName : field.fields) {
-			if (values.containsKey(fieldName)) {
-				value = values.get(fieldName);
+		for (Source source : field.fields) {
+			if (values.containsKey(source.field)) {
+				value = values.get(source.field);
 			}
 		}
 		if (value == null) {
@@ -173,8 +201,19 @@ public class Configuration {
 		return value;
 	}
 
-	public String resolveProperties(String name, Map<String, String> values) throws Exception {
+	public List<String> resolveProperties(String name, Map<String, List<String>> values) throws Exception {
 		return resolve(attributes, name, values);
+	}
+	public String resolveProperty(String name, Map<String, List<String>> values) throws Exception {
+		List<String> properties = resolveProperties(name,values);
+		if(properties.size() == 1){
+			return properties.get(0);
+		}
+		if(properties.size() > 1){
+			throw new Exception(String.format("The field '%s' contains multiple values %s ", name , String.join(" , ",properties)));
+		} else {
+			throw new Exception("missing property");
+		}
 	}
 
 	private String capitalize(final String line) {
@@ -234,11 +273,15 @@ public class Configuration {
 	 * @param attributes
 	 * @throws Exception
 	 */
-	public void populateMetadata(IMetadata metadata, Map<String, String> attributes) throws Exception {
+	public void populateMetadata(IMetadata metadata, Map<String, List<String>> attributes) throws Exception {
 		for (Field f : getElements()) {
 			String methodName = String.format("set%1$s", capitalize(f.name));
-			String value = resolveElement(f, attributes);
-			if (value != null) {
+			List<String> values = resolveElement(f, attributes);
+			if (values != null) {
+				if(values.size() > 1){
+					throw new Exception(String.format("The field '%s' contains multiple values %s ", f.name , String.join(" , ",values)));
+				}
+				String value = values.get(0);
 				Boolean updated = updateMetadata(metadata, methodName, value);
 				if (!updated) {
 					throw new Exception(String.format("Could not update property '%s'", f.name));
