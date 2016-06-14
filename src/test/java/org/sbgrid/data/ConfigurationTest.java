@@ -3,6 +3,7 @@ package org.sbgrid.data;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -28,8 +29,15 @@ public class ConfigurationTest {
 	static public void test1() throws Exception {
 		Configuration configuration = new Configuration();
 		configuration.setElements(Arrays.asList(new Field("property", "property1", "property2")));
-		configuration.setAttributes(Arrays.asList(new Field("metadata", "m1", "m2"), new Field("PixelsSizeX", "SIZE1"),
-				new Field("PixelsSizeY", "SIZE2")));
+		Field field = new Field("dimensions", "d");
+		field.fields.get(0).regex = "pattern";
+		field.fields.get(0).replacement = "replacement";
+		
+		//field.fields.get(0).regexp = Arrays.asList(new Configuration.Replacement("pattern","replacement"));
+		configuration.setAttributes(Arrays.asList(new Field("metadata", "m1", "m2")
+				                                 ,new Field("PixelsSizeX", "SIZE1")
+				                                 ,new Field("PixelsSizeY", "SIZE2")
+				                                 ,field));
 		JAXBContext jc = JAXBContext.newInstance(Configuration.class);
 		Marshaller marshaller = jc.createMarshaller();
 		marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
@@ -61,8 +69,8 @@ public class ConfigurationTest {
     	context.reset();
 		//new ADSC("/home/mwm1/Work/sbgrid/17").write("/tmp/1.tiff");
         new ADSC(ADSC.configuration(),"/home/mwm1/Work/sbgrid/1/p3_6_1_015.img").write("/tmp/1.tiff");
-        //new ADSC(ADSC.configuration(),"/home/mwm1/Work/sbgrid/17/ucsd6_16_1_094.img").write("/tmp/1.ome.tiff");
-
+        new ADSC(ADSC.configuration(),"/home/mwm1/Work/sbgrid/17/ucsd6_16_1_094.img").write("/tmp/1.ome.tiff");
+    	new ADSC(ADSC.configuration(),"/home/mwm1/Work/sbgrid/115/rii140_3_9_4_169.img").write("/tmp/1.ome.tiff");
     }
 
 	static public void main(String args[]) throws Exception {

@@ -24,10 +24,10 @@ import ome.xml.model.primitives.Timestamp;
 
 /**
  * A representation of an XML configuration object.
- * 
+ *
  * This allows the user to customize the metadata fields and how they are stored
  * in an ome tiff file.
- * 
+ *
  * @author mwm1
  *
  */
@@ -36,7 +36,7 @@ import ome.xml.model.primitives.Timestamp;
 public class Configuration {
 	/**
 	 * A meta data field.
-	 * 
+	 *
 	 * @author mwm1
 	 *
 	 */
@@ -45,26 +45,36 @@ public class Configuration {
 		String pattern;
 		@XmlAttribute(name = "replacement")
 		String replacement;
-		
+
 		public Replacement(){}
 		public Replacement(String pattern,String replacement){
 			this.pattern = pattern;
 			this.replacement = replacement;
 		}
 	}
+
 	static public class Source {
 		@XmlAttribute(name = "field")
 		String field;
-		@XmlElement(name = "regexp")
-		List<Replacement> regexp;
-		
+		@XmlAttribute(name = "regex")
+		String regex;
+		@XmlAttribute(name = "replacement")
+		String replacement;
+
 		public Source(){}
-		public Source(String field,Replacement ... regexp){
+		public Source(String field){
 			this.field = field;
-			this.regexp = Arrays.asList(regexp); 
+		}
+		public String process(String input){
+			String result = input;
+			if(regex != null && replacement != null){
+				result = result.replaceAll(regex,replacement);
+			}
+			return result;
+
 		}
 	}
-	
+
 	static public class Field {
 		/**
 		 * Where to get the data to place in the field. The first value that is
@@ -82,12 +92,12 @@ public class Configuration {
 		@XmlAttribute(name = "value")
 		String value = null;
 
-		
+
 		@XmlAttribute(name = "required")
 		Boolean required = false;
 		/**
 		 * Constructor
-		 * 
+		 *
 		 * @param name
 		 *            of the field
 		 * @param fields
@@ -117,7 +127,7 @@ public class Configuration {
 	 * These are properties used in the creation of the TIFF file. Properties
 	 * such as height width of the TIFF file are used to determine how to
 	 * convert the tiff file.
-	 * 
+	 *
 	 */
 
 	@XmlElement(name = "attribute")
@@ -158,7 +168,7 @@ public class Configuration {
 	/**
 	 * Given a set of attributes and name try to resolve the name. First check
 	 * if
-	 * 
+	 *
 	 * @lookup where to lookup
 	 * @param name
 	 *            name to resolve
@@ -174,7 +184,11 @@ public class Configuration {
 			value = Arrays.asList(new String[]{field.value}) ;
 			for (Source source : field.fields) {
 				if (attributes.containsKey(source.field)) {
-					value = attributes.get(source.field);
+					List<String> new_value = new ArrayList<String>();
+					for(String v : attributes.get(source.field)){
+						new_value.add(source.process(v));
+					}
+					value = new_value;
 					break;
 				}
 			}
@@ -210,7 +224,9 @@ public class Configuration {
 			return properties.get(0);
 		}
 		if(properties.size() > 1){
-			throw new Exception(String.format("The field '%s' contains multiple values %s ", name , String.join(" , ",properties)));
+		    throw new Exception(String.format("The field '%s' contains multiple values %s "
+		    		                         ,name
+		    		                         ,Arrays.toString(properties.toArray())));
 		} else {
 			throw new Exception("missing property");
 		}
@@ -268,7 +284,7 @@ public class Configuration {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param metadata
 	 * @param attributes
 	 * @throws Exception
@@ -279,7 +295,9 @@ public class Configuration {
 			List<String> values = resolveElement(f, attributes);
 			if (values != null) {
 				if(values.size() > 1){
-					throw new Exception(String.format("The field '%s' contains multiple values %s ", f.name , String.join(" , ",values)));
+				    throw new Exception(String.format("The field '%s' contains multiple values %s "
+				    		                         ,f.name
+				    		                         ,Arrays.toString(values.toArray())));
 				}
 				String value = values.get(0);
 				Boolean updated = updateMetadata(metadata, methodName, value);
@@ -293,7 +311,7 @@ public class Configuration {
 
 	/**
 	 * Covert a XML string into a configuration object.
-	 * 
+	 *
 	 * @param xmlConfiguration
 	 *            string containing the configuration.
 	 * @return

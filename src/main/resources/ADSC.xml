@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <configuration>
 	<!-- Dimensions -->
-    <element name="PixelsSizeX" required="true">
-        <source field="SIZE1"/>
-    </element>
-    <element name="PixelsSizeY" required="true">
-        <source field="SIZE2"/>
-    </element>
+	
     <element name="PixelsSizeZ" value="1"/>
     <element name="PixelsSizeC" value="1"/>
     <element name="PixelsSizeT" value="1"/>
@@ -14,6 +9,15 @@
     <element name="ChannelSamplesPerPixel" value="1"/>
     <element name="ImageID"     value="Image:0"/>
     <element name="PixelsID"    value="Pixels:0"/>
+
+    <attribute name="PixelsSizeX" required="true">
+        <source field="SIZE1"/>
+    </attribute>
+    <attribute name="PixelsSizeY" required="true">
+        <source field="SIZE2"/>
+    </attribute>
+    
+    
     <attribute name="TYPE"  required="true">
         <source field="Data_type"/>
         <source field="TYPE"/>
@@ -27,4 +31,19 @@
     <attribute name="HEADER_BYTES" required="true">
         <source field="HEADER_BYTES"/>
     </attribute>
+    
+    <attribute name="DetectorSizeX" required="false">
+        <source field="NOIR1_DETECTOR_SIZE" regex="([^\s]+)\s+([^\s]+)" replacement="$1"/>
+    </attribute>
+    <attribute name="DetectorSizeY" required="false">
+        <source field="NOIR1_DETECTOR_SIZE" regex="([^\s]+)\s+([^\s]+)" replacement="$2"/>
+    </attribute>
+
+    <attribute name="DectorDimensionX" required="false">
+        <source field="NOIR1_DETECTOR_DIMENSIONS" regex="([^\s]+)\s+([^\s]+)" replacement="$1"/>
+    </attribute>
+    <attribute name="DectorDimensionY" required="false">
+        <source field="NOIR1_DETECTOR_DIMENSIONS" regex="([^\s]+)\s+([^\s]+)" replacement="$2"/>
+    </attribute>
+    
 </configuration>
